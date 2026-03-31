@@ -1,183 +1,30 @@
 <!DOCTYPE html>
 
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Neon Ultra Player</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<title>Neon Player</title>
 
 <style>
-:root {
-    --glass: rgba(255,255,255,0.05);
-    --border: rgba(255,255,255,0.15);
-    --neon1: #00f0ff;
-    --neon2: #ff00ff;
-}
+body{margin:0;background:#000;color:white;font-family:sans-serif;}
 
-* {
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:'Poppins',sans-serif;
-}
+.navbar{display:flex;justify-content:space-between;padding:15px;background:#111;}
+input{padding:10px;border-radius:20px;border:none;}
 
-body {
-    background: radial-gradient(circle at top, #0a0a0a, #000);
-    color: white;
-}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:15px;padding:15px;}
 
-/* GLOW BG */
-body::before, body::after {
-    content:"";
-    position:fixed;
-    width:400px;
-    height:400px;
-    filter:blur(180px);
-    z-index:-1;
-}
-body::before { background:var(--neon1); top:-100px; left:-100px; }
-body::after { background:var(--neon2); bottom:-100px; right:-100px; }
+.card{background:#111;padding:10px;border-radius:10px;cursor:pointer;transition:.3s;}
+.card:hover{transform:scale(1.05);box-shadow:0 0 15px cyan;}
+.card img{width:100%;border-radius:10px;}
 
-/* NAVBAR */
-.navbar {
-    display:flex;
-    justify-content:space-between;
-    padding:15px 25px;
-    backdrop-filter:blur(25px);
-    background:var(--glass);
-}
+.player-box{padding:10px;}
 
-.logo {
-    font-size:22px;
-    font-weight:600;
-    background:linear-gradient(45deg,var(--neon1),var(--neon2));
-    -webkit-background-clip:text;
-    color:transparent;
-}
+video,audio{width:100%;border-radius:10px;}
 
-.search input {
-    padding:10px 20px;
-    border-radius:30px;
-    border:1px solid var(--border);
-    background:var(--glass);
-    color:white;
-}
+.controls{margin:10px;}
+button{padding:8px 15px;margin-right:10px;border:none;border-radius:20px;background:cyan;cursor:pointer;}
 
-/* LAYOUT */
-.container {
-    display:flex;
-}
-
-/* SIDEBAR */
-.sidebar {
-    width:200px;
-    padding:20px;
-    background:var(--glass);
-}
-
-.sidebar a {
-    display:block;
-    padding:12px;
-    margin:10px 0;
-    border-radius:12px;
-    color:#aaa;
-}
-
-.sidebar a:hover {
-    color:white;
-    box-shadow:0 0 15px var(--neon1);
-}
-
-/* CONTENT */
-.content {
-    flex:1;
-    padding:20px;
-}
-
-/* PLAYER (HIDDEN VIDEO LOOK BUT AUDIO RUNS) */
-.player {
-    background:var(--glass);
-    border-radius:20px;
-    padding:10px;
-    margin-bottom:20px;
-}
-
-audio {
-    width:100%;
-}
-
-/* GRID */
-.grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
-    gap:20px;
-}
-
-/* CARD */
-.card {
-    position:relative;
-    background:var(--glass);
-    border-radius:15px;
-    overflow:hidden;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-.card::before {
-    content:"";
-    position:absolute;
-    inset:-1px;
-    border-radius:15px;
-    background:linear-gradient(45deg,var(--neon1),var(--neon2),var(--neon1));
-    z-index:-1;
-    animation:glow 3s linear infinite;
-}
-
-@keyframes glow {
-    0% { filter:blur(5px); opacity:0.6; }
-    50% { filter:blur(15px); opacity:1; }
-    100% { filter:blur(5px); opacity:0.6; }
-}
-
-.card:hover {
-    transform:translateY(-10px) scale(1.05);
-}
-
-/* THUMB */
-.thumb img {
-    width:100%;
-    height:150px;
-    object-fit:cover;
-}
-
-/* INFO */
-.card-info {
-    padding:10px;
-}
-
-/* MINI PLAYER */
-.mini-player {
-    position:fixed;
-    bottom:0;
-    width:100%;
-    background:rgba(0,0,0,0.6);
-    backdrop-filter:blur(20px);
-    display:flex;
-    align-items:center;
-    padding:10px;
-}
-
-.mini-player img {
-    width:50px;
-    border-radius:5px;
-}
-
-.mini-player .info {
-    padding-left:10px;
-}
+.mini{position:fixed;bottom:0;width:100%;background:#111;padding:10px;}
 </style>
 
 </head>
@@ -185,93 +32,96 @@ audio {
 <body>
 
 <div class="navbar">
-<div class="logo">⚡ Neon Player</div>
-
-<div class="search">
-<input onkeyup="searchSongs(this.value)" placeholder="Search songs...">
-</div>
+<h2>⚡ Neon Player</h2>
+<input onkeyup="searchSongs(this.value)" placeholder="Search...">
 </div>
 
-<div class="container">
+<div class="player-box">
+<video id="video" controls style="display:none"></video>
+<audio id="audio" controls autoplay></audio>
 
-<div class="sidebar">
-<a href="#">🏠 Home</a>
-<a href="#">🔥 Trending</a>
-<a href="#">🎵 Music</a>
+<div class="controls">
+<button onclick="mode='audio'">🎧 Audio</button>
+<button onclick="mode='video'">🎬 Video</button>
 </div>
-
-<div class="content">
-
-<div class="player">
-<audio id="player" controls autoplay></audio>
 </div>
 
 <div class="grid" id="grid"></div>
 
-</div>
-</div>
-
-<div class="mini-player">
-<img id="thumb">
-<div class="info">
+<div class="mini">
 <h4 id="title">No Song</h4>
-</div>
 </div>
 
 <script>
 
-async function searchSongs(q){
+let mode = "audio";
 
+async function searchSongs(q){
 if(!q) return;
 
-let res = await fetch(`http://localhost:8000/search?q=${q}`);
+let res = await fetch("/api/search",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({q})
+});
+
 let data = await res.json();
 
-let grid = document.getElementById("grid");
+let grid=document.getElementById("grid");
 grid.innerHTML="";
 
-[...data.main_results, ...data.suggested].forEach(v=>{
-
-grid.innerHTML += `
+[...data.main_results,...data.suggested].forEach(v=>{
+grid.innerHTML+=`
 <div class="card" onclick="play('${v.url}','${v.title}','${v.thumbnail}')">
-
-<div class="thumb">
 <img src="${v.thumbnail}">
-</div>
-
-<div class="card-info">
-${v.title}
-</div>
-
+<p>${v.title}</p>
 </div>`;
 });
 }
 
-
 async function play(url,title,thumb){
 
-let res = await fetch(`http://localhost:8000/stream?url=${encodeURIComponent(url)}`);
+let endpoint = mode === "video" ? "/api/play/video" : "/api/play/audio";
+
+let res = await fetch(endpoint,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url})
+});
+
 let data = await res.json();
 
-if(data.error){
-alert("Stream error");
+if(!data.stream){
+alert("Error");
 return;
 }
 
-let player = document.getElementById("player");
+let audio=document.getElementById("audio");
+let video=document.getElementById("video");
 
-player.src = data.url;
-player.play();
+if(mode==="video"){
+audio.pause();
+audio.style.display="none";
 
-document.getElementById("title").innerText = title;
-document.getElementById("thumb").src = thumb;
+video.style.display="block";
+video.src=data.stream;
+video.play();
+}else{
+video.pause();
+video.style.display="none";
 
-/* 🔥 BACKGROUND CONTROL */
+audio.style.display="block";
+audio.src=data.stream;
+audio.play();
+}
+
+document.getElementById("title").innerText=title;
+
+/* background support */
 navigator.mediaSession.metadata = new MediaMetadata({
-title: title,
-artwork: [{ src: thumb }]
+title:title,
+artwork:[{src:thumb}]
 });
-
 }
 
 </script>
