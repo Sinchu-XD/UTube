@@ -34,26 +34,38 @@ def get_video_audio_urls(url: str):
     return urls[0], urls[1]
 
 
-def stream_merged(video_url: str, audio_url: str):
+import asyncio
+import os
+import uuid
 
-    ffmpeg_cmd = [
+HLS_DIR = "hls"
+
+os.makedirs(HLS_DIR, exist_ok=True)
+
+
+async def run_cmd(cmd):
+    process = await asyncio.create_subprocess_exec(*cmd)
+    await process.communicate()
+
+
+async def generate_hls(video_url, audio_url):
+
+    stream_id = str(uuid.uuid4())
+    out_path = f"{HLS_DIR}/{stream_id}.m3u8"
+
+    cmd = [
         "ffmpeg",
         "-i", video_url,
         "-i", audio_url,
         "-c:v", "copy",
-        "-c:a", "copy",
-        "-f", "mp4",
-        "-movflags", "frag_keyframe+empty_moov",
-        "pipe:1"
+        "-c:a", "aac",
+        "-f", "hls",
+        "-hls_time", "6",
+        "-hls_list_size", "0",
+        "-hls_segment_filename", f"{HLS_DIR}/{stream_id}_%03d.ts",
+        out_path
     ]
 
-    process = subprocess.Popen(
-        ffmpeg_cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL
-    )
+    await run_cmd(cmd)
 
-    return StreamingResponse(
-        process.stdout,
-        media_type="video/mp4"
-    )
+    return stream_id
