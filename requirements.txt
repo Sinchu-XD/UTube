@@ -3,5 +3,5 @@ uvicorn
 httpx
 orjson
 YouTubeMusic
-aioredis
+redis
 python-multipart
