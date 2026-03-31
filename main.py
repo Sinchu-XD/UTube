@@ -5,7 +5,8 @@ from fastapi.responses import FileResponse
 import os
 
 from YouTubeMusic.Search import Search
-from YouTubeMusic.Stream import get_stream, get_video_stream
+from YouTubeMusic.Stream import get_stream
+from Stream import get_video_audio_urls, stream_merged
 
 app = FastAPI()
 
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 @app.get("/")
 async def home():
@@ -33,12 +35,10 @@ async def search(req: Request):
 # 📁 COOKIE PATH
 COOKIES = "cookies.txt"
 
-
 def get_cookie_file():
     return COOKIES if os.path.exists(COOKIES) else None
 
 
-# 🎧 AUDIO STREAM
 @app.post("/api/play/audio")
 async def play_audio(req: Request):
     data = await req.json()
@@ -52,15 +52,12 @@ async def play_audio(req: Request):
     return {"stream": stream}
 
 
-# 🎬 VIDEO STREAM
-@app.post("/api/play/video")
-async def play_video(req: Request):
-    data = await req.json()
-    url = data.get("url")
+@app.get("/api/play/video")
+async def play_video(url: str):
 
-    stream = await get_video_stream(url, cookies=get_cookie_file())
+    video_url, audio_url = get_video_audio_urls(url)
 
-    if not stream:
+    if not video_url or not audio_url:
         return {"error": "Video stream failed"}
 
-    return {"stream": stream}
+    return stream_merged(video_url, audio_url)
