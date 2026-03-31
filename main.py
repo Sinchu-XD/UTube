@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-from Search import Search
-from Stream import get_stream, get_video_stream
+from YouTubeMusic.Search import Search
+from YouTubeMusic.Stream import get_stream, get_video_stream
 
 app = FastAPI()
 
