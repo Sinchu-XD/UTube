@@ -5,58 +5,178 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Neon Music App</title>
+<title>Neon Ultra Player</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
-body {
-    margin:0;
-    background:#000;
-    color:white;
-    font-family:sans-serif;
+:root {
+    --glass: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.15);
+    --neon1: #00f0ff;
+    --neon2: #ff00ff;
 }
 
-/* NAV */
-.nav {
-    padding:15px;
+* {
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body {
+    background: radial-gradient(circle at top, #0a0a0a, #000);
+    color: white;
+}
+
+/* GLOW BG */
+body::before, body::after {
+    content:"";
+    position:fixed;
+    width:400px;
+    height:400px;
+    filter:blur(180px);
+    z-index:-1;
+}
+body::before { background:var(--neon1); top:-100px; left:-100px; }
+body::after { background:var(--neon2); bottom:-100px; right:-100px; }
+
+/* NAVBAR */
+.navbar {
     display:flex;
     justify-content:space-between;
-    background:#111;
+    padding:15px 25px;
+    backdrop-filter:blur(25px);
+    background:var(--glass);
 }
 
-/* SEARCH */
-input {
-    padding:10px;
+.logo {
+    font-size:22px;
+    font-weight:600;
+    background:linear-gradient(45deg,var(--neon1),var(--neon2));
+    -webkit-background-clip:text;
+    color:transparent;
+}
+
+.search input {
+    padding:10px 20px;
+    border-radius:30px;
+    border:1px solid var(--border);
+    background:var(--glass);
+    color:white;
+}
+
+/* LAYOUT */
+.container {
+    display:flex;
+}
+
+/* SIDEBAR */
+.sidebar {
     width:200px;
+    padding:20px;
+    background:var(--glass);
+}
+
+.sidebar a {
+    display:block;
+    padding:12px;
+    margin:10px 0;
+    border-radius:12px;
+    color:#aaa;
+}
+
+.sidebar a:hover {
+    color:white;
+    box-shadow:0 0 15px var(--neon1);
+}
+
+/* CONTENT */
+.content {
+    flex:1;
+    padding:20px;
+}
+
+/* PLAYER (HIDDEN VIDEO LOOK BUT AUDIO RUNS) */
+.player {
+    background:var(--glass);
+    border-radius:20px;
+    padding:10px;
+    margin-bottom:20px;
+}
+
+audio {
+    width:100%;
 }
 
 /* GRID */
 .grid {
     display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-    gap:15px;
-    padding:15px;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:20px;
 }
 
 /* CARD */
 .card {
-    background:#111;
-    padding:10px;
-    border-radius:10px;
+    position:relative;
+    background:var(--glass);
+    border-radius:15px;
+    overflow:hidden;
     cursor:pointer;
+    transition:0.3s;
 }
 
-.card img {
+.card::before {
+    content:"";
+    position:absolute;
+    inset:-1px;
+    border-radius:15px;
+    background:linear-gradient(45deg,var(--neon1),var(--neon2),var(--neon1));
+    z-index:-1;
+    animation:glow 3s linear infinite;
+}
+
+@keyframes glow {
+    0% { filter:blur(5px); opacity:0.6; }
+    50% { filter:blur(15px); opacity:1; }
+    100% { filter:blur(5px); opacity:0.6; }
+}
+
+.card:hover {
+    transform:translateY(-10px) scale(1.05);
+}
+
+/* THUMB */
+.thumb img {
     width:100%;
-    border-radius:10px;
+    height:150px;
+    object-fit:cover;
+}
+
+/* INFO */
+.card-info {
+    padding:10px;
 }
 
 /* MINI PLAYER */
-.player {
+.mini-player {
     position:fixed;
     bottom:0;
     width:100%;
-    background:#111;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(20px);
+    display:flex;
+    align-items:center;
     padding:10px;
+}
+
+.mini-player img {
+    width:50px;
+    border-radius:5px;
+}
+
+.mini-player .info {
+    padding-left:10px;
 }
 </style>
 
@@ -64,19 +184,38 @@ input {
 
 <body>
 
-<div class="nav">
-<h2>🔥 My Music</h2>
-<input onkeyup="searchSongs(this.value)" placeholder="Search...">
+<div class="navbar">
+<div class="logo">⚡ Neon Player</div>
+
+<div class="search">
+<input onkeyup="searchSongs(this.value)" placeholder="Search songs...">
+</div>
+</div>
+
+<div class="container">
+
+<div class="sidebar">
+<a href="#">🏠 Home</a>
+<a href="#">🔥 Trending</a>
+<a href="#">🎵 Music</a>
+</div>
+
+<div class="content">
+
+<div class="player">
+<audio id="player" controls autoplay></audio>
 </div>
 
 <div class="grid" id="grid"></div>
 
-<!-- 🎧 BACKGROUND AUDIO -->
+</div>
+</div>
 
-<audio id="player" controls autoplay></audio>
-
-<div class="player">
+<div class="mini-player">
+<img id="thumb">
+<div class="info">
 <h4 id="title">No Song</h4>
+</div>
 </div>
 
 <script>
@@ -94,23 +233,28 @@ grid.innerHTML="";
 [...data.main_results, ...data.suggested].forEach(v=>{
 
 grid.innerHTML += `
-<div class="card" onclick="play('${v.url}','${v.title}')">
+<div class="card" onclick="play('${v.url}','${v.title}','${v.thumbnail}')">
 
+<div class="thumb">
 <img src="${v.thumbnail}">
-<p>${v.title}</p>
+</div>
+
+<div class="card-info">
+${v.title}
+</div>
 
 </div>`;
 });
 }
 
 
-async function play(url,title){
+async function play(url,title,thumb){
 
 let res = await fetch(`http://localhost:8000/stream?url=${encodeURIComponent(url)}`);
 let data = await res.json();
 
 if(data.error){
-alert("Error loading stream");
+alert("Stream error");
 return;
 }
 
@@ -119,14 +263,17 @@ let player = document.getElementById("player");
 player.src = data.url;
 player.play();
 
-/* 🔥 MEDIA SESSION (LOCK SCREEN SUPPORT) */
+document.getElementById("title").innerText = title;
+document.getElementById("thumb").src = thumb;
+
+/* 🔥 BACKGROUND CONTROL */
 navigator.mediaSession.metadata = new MediaMetadata({
-title: title
+title: title,
+artwork: [{ src: thumb }]
 });
 
-document.getElementById("title").innerText = title;
-
 }
+
 </script>
 
 </body>
