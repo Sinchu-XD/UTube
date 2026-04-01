@@ -24,29 +24,12 @@ color:white;
 overflow-x:hidden;
 }
 
-body::before,body::after{
-content:"";
-position:fixed;
-width:500px;
-height:500px;
-filter:blur(200px);
-z-index:-1;
-animation:float 10s infinite alternate;
-}
-body::before{background:var(--neon1);top:-100px;left:-100px;}
-body::after{background:var(--neon2);bottom:-100px;right:-100px;}
-
-@keyframes float{
-0%{transform:translate(0,0)}
-100%{transform:translate(60px,60px)}
-}
-
 .navbar{
 display:flex;
 justify-content:space-between;
 padding:15px 25px;
-backdrop-filter:blur(20px);
 background:var(--glass);
+backdrop-filter:blur(20px);
 }
 
 .logo{
@@ -64,7 +47,6 @@ border:1px solid var(--border);
 background:var(--glass);
 color:white;
 outline:none;
-width:250px;
 }
 
 .player-box{padding:15px;}
@@ -86,6 +68,14 @@ cursor:pointer;
 background:linear-gradient(45deg,var(--neon1),var(--neon2));
 }
 
+select{
+padding:8px;
+border-radius:10px;
+background:black;
+color:white;
+margin-top:10px;
+}
+
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -94,7 +84,6 @@ padding:20px;
 }
 
 .card{
-position:relative;
 background:var(--glass);
 border-radius:15px;
 overflow:hidden;
@@ -102,25 +91,8 @@ cursor:pointer;
 transition:.3s;
 }
 
-.card::before{
-content:"";
-position:absolute;
-inset:-2px;
-border-radius:15px;
-background:linear-gradient(90deg,var(--neon1),var(--neon2),var(--neon1));
-background-size:300%;
-animation:neonMove 4s linear infinite;
-z-index:-1;
-}
-
-@keyframes neonMove{
-0%{background-position:0%}
-100%{background-position:300%}
-}
-
 .card:hover{
-transform:translateY(-10px) scale(1.05);
-box-shadow:0 0 20px var(--neon1),0 0 40px var(--neon2);
+transform:scale(1.05);
 }
 
 .thumb img{
@@ -136,7 +108,6 @@ position:fixed;
 bottom:0;
 width:100%;
 background:rgba(0,0,0,0.6);
-backdrop-filter:blur(20px);
 display:flex;
 align-items:center;
 padding:10px;
@@ -147,39 +118,10 @@ width:50px;
 border-radius:5px;
 }
 .mini-player .info{padding-left:10px;}
-
-.loader{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:black;
-display:flex;
-align-items:center;
-justify-content:center;
-z-index:999;
-}
-
-.loader div{
-width:50px;
-height:50px;
-border:4px solid transparent;
-border-top:4px solid var(--neon1);
-border-right:4px solid var(--neon2);
-border-radius:50%;
-animation:spin 1s linear infinite;
-}
-
-@keyframes spin{
-100%{transform:rotate(360deg)}
-}
 </style>
 </head>
 
 <body>
-
-<div class="loader" id="loader"><div></div></div>
 
 <div class="navbar">
 <div class="logo">⚡ Neon Ultra</div>
@@ -196,6 +138,17 @@ animation:spin 1s linear infinite;
 <button onclick="mode='audio'">🎧 Audio</button>
 <button onclick="mode='video'">🎬 Video</button>
 </div>
+
+<select id="quality">
+<option value="auto">Auto (1080p)</option>
+<option value="360">360p</option>
+<option value="480">480p</option>
+<option value="720">720p</option>
+<option value="1080">1080p</option>
+<option value="1440">2K</option>
+<option value="2160">4K</option>
+</select>
+
 </div>
 
 <div class="grid" id="grid"></div>
@@ -212,27 +165,21 @@ animation:spin 1s linear infinite;
 let mode="audio";
 let timer;
 
-window.onload=()=>document.getElementById("loader").style.display="none";
-
-function showLoader(){document.getElementById("loader").style.display="flex";}
-function hideLoader(){document.getElementById("loader").style.display="none";}
-
 function searchSongs(q){
+
 clearTimeout(timer);
 
 timer=setTimeout(async()=>{
-if(!q)return;
 
-showLoader();
+if(!q) return;
 
-try{
-let res=await fetch("/api/search",{
+let res = await fetch("/api/search",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({q})
 });
 
-let data=await res.json();
+let data = await res.json();
 
 let grid=document.getElementById("grid");
 grid.innerHTML="";
@@ -245,26 +192,17 @@ grid.innerHTML+=`
 </div>`;
 });
 
-}catch(e){
-alert("Search failed");
-}
-
-hideLoader();
-
 },300);
 }
 
-async function play(url,title,thumb){
+function play(url,title,thumb){
 
 let video=document.getElementById("video");
 let audio=document.getElementById("audio");
+let quality=document.getElementById("quality").value;
 
 document.getElementById("title").innerText=title;
 document.getElementById("thumb").src=thumb;
-
-showLoader();
-
-try{
 
 if(mode==="video"){
 
@@ -273,12 +211,7 @@ audio.style.display="none";
 
 video.style.display="block";
 
-let res=await fetch(`/api/play/video?url=${encodeURIComponent(url)}`);
-let data=await res.json();
-
-if(data.error) throw "video error";
-
-video.src=data.stream;
+video.src=`/api/play/video?url=${encodeURIComponent(url)}&quality=${quality}`;
 video.play();
 
 }else{
@@ -288,25 +221,18 @@ video.style.display="none";
 
 audio.style.display="block";
 
-let res=await fetch("/api/play/audio",{
+fetch("/api/play/audio",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url})
-});
-
-let data=await res.json();
-
-if(data.error) throw "audio error";
-
+})
+.then(res=>res.json())
+.then(data=>{
 audio.src=data.stream;
 audio.play();
-}
+});
 
-}catch(e){
-alert("Playback failed");
 }
-
-hideLoader();
 
 navigator.mediaSession.metadata=new MediaMetadata({
 title:title,
