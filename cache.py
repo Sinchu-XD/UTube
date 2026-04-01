@@ -1,15 +1,10 @@
-import redis.asyncio as redis
-import json
-
-r = None
+cache = {}
 
 async def init():
-    global r
-    r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+    pass
 
 async def get(key):
-    data = await r.get(key)
-    return json.loads(data) if data else None
+    return cache.get(key)
 
 async def set(key, value):
-    await r.set(key, json.dumps(value), ex=3600)
+    cache[key] = value
