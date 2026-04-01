@@ -22,7 +22,7 @@ async def run_blocking(cmd):
     )
 
 
-async def get_video_audio_urls(url: str):
+async def get_video_audio_urls(url: str, cookies=None):
 
     cmd = [
         "yt-dlp",
