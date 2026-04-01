@@ -195,7 +195,9 @@ grid.innerHTML+=`
 },300);
 }
 
-function play(url,title,thumb){
+async function play(url,title,thumb){
+
+currentUrl = url;
 
 let video=document.getElementById("video");
 let audio=document.getElementById("audio");
@@ -221,17 +223,16 @@ video.style.display="none";
 
 audio.style.display="block";
 
-fetch("/api/play/audio",{
+let res=await fetch("/api/play/audio",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({url})
-})
-.then(res=>res.json())
-.then(data=>{
-audio.src=data.stream;
-audio.play();
 });
 
+let data=await res.json();
+
+audio.src=data.stream;
+audio.play();
 }
 
 navigator.mediaSession.metadata=new MediaMetadata({
