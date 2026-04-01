@@ -67,8 +67,7 @@ async def play_video(url: str):
     if cached:
         return {"stream": f"/hls/{cached}.m3u8"}
 
-    video_url, audio_url = await asyncio.to_thread(
-        get_video_audio_urls,
+    video_url, audio_url = await get_video_audio_urls,
         url,
         get_cookie_file()
     )
