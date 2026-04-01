@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import asyncio
+import os
 
 from cache import init, get, set
 from Stream import get_video_audio_urls, generate_hls
@@ -12,6 +13,12 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/hls", StaticFiles(directory="hls"), name="hls")
+
+COOKIES = "cookies.txt"
+
+
+def get_cookie_file():
+    return COOKIES if os.path.exists(COOKIES) else None
 
 
 @app.on_event("startup")
@@ -41,7 +48,7 @@ async def play_audio(req: Request):
     if cached:
         return {"stream": cached}
 
-    stream = await get_stream(url)
+    stream = await get_stream(url, cookies=get_cookie_file())
 
     if not stream:
         return {"error": "audio failed"}
@@ -60,7 +67,11 @@ async def play_video(url: str):
     if cached:
         return {"stream": f"/hls/{cached}.m3u8"}
 
-    video_url, audio_url = await asyncio.to_thread(get_video_audio_urls, url)
+    video_url, audio_url = await asyncio.to_thread(
+        get_video_audio_urls,
+        url,
+        get_cookie_file()
+    )
 
     if not video_url:
         return {"error": "video failed"}
