@@ -197,6 +197,31 @@ grid.innerHTML+=`
 
 async function play(url,title,thumb){
 
+function changeQuality(){
+
+let video=document.getElementById("video");
+let q=document.getElementById("quality").value;
+
+if(!currentUrl) return;
+
+let currentTime = video.currentTime;
+let isPlaying = !video.paused;
+
+video.pause();
+
+video.src=`/api/play/video?url=${encodeURIComponent(currentUrl)}&quality=${q}`;
+
+video.onloadedmetadata = () => {
+
+video.currentTime = currentTime;
+
+if(isPlaying){
+video.play();
+}
+
+};
+}
+  
 currentUrl = url;
 
 let video=document.getElementById("video");
