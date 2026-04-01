@@ -53,11 +53,11 @@ async def play_audio(req: Request):
 
 
 @app.get("/api/play/video")
-async def play_video(url: str):
+async def play_video(url: str, quality: str = "auto"):
 
-    video_url, audio_url = get_video_audio_urls(url)
+    video_url, audio_url = get_video_audio_urls(url, quality)
 
-    if not video_url or not audio_url:
-        return {"error": "Video stream failed"}
+    if not video_url:
+        return {"error": "video failed"}
 
     return stream_merged(video_url, audio_url)
