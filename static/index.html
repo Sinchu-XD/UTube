@@ -24,12 +24,13 @@ color:white;
 overflow-x:hidden;
 }
 
+/* NAVBAR */
 .navbar{
 display:flex;
 justify-content:space-between;
 padding:15px 25px;
 background:var(--glass);
-backdrop-filter:blur(20px);
+backdrop-filter:blur(30px);
 }
 
 .logo{
@@ -40,42 +41,58 @@ background:linear-gradient(45deg,var(--neon1),var(--neon2));
 color:transparent;
 }
 
+/* SEARCH */
 .search input{
-padding:10px 20px;
-border-radius:30px;
+width:320px;
+padding:14px 25px;
+border-radius:40px;
 border:1px solid var(--border);
-background:var(--glass);
+background:rgba(255,255,255,0.08);
 color:white;
 outline:none;
+font-size:16px;
+box-shadow:0 0 10px rgba(0,255,255,0.2);
+transition:0.3s;
+}
+.search input:focus{
+box-shadow:0 0 20px var(--neon1),0 0 40px var(--neon2);
+transform:scale(1.05);
 }
 
-.player-box{padding:15px;}
+/* PLAYER */
+.player-box{padding:20px;text-align:center;}
 
-video,audio{
+video{
 width:100%;
-border-radius:15px;
-background:black;
+border-radius:20px;
+box-shadow:0 0 25px rgba(0,255,255,0.3);
+display:none;
 }
 
-.controls{margin-top:10px;}
+audio{
+width:100%;
+}
 
-.controls button{
-padding:8px 15px;
+/* NOW PLAYING */
+.now-playing img{
+width:200px;
+border-radius:15px;
+box-shadow:0 0 30px var(--neon1);
+}
+.now-playing h2{margin-top:10px;}
+.now-playing p{opacity:0.7;}
+
+/* BUTTON */
+button{
+padding:10px 20px;
 border:none;
-border-radius:20px;
-margin-right:10px;
+border-radius:25px;
 cursor:pointer;
 background:linear-gradient(45deg,var(--neon1),var(--neon2));
-}
-
-select{
-padding:8px;
-border-radius:10px;
-background:black;
-color:white;
 margin-top:10px;
 }
 
+/* GRID */
 .grid{
 display:grid;
 grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
@@ -84,40 +101,62 @@ padding:20px;
 }
 
 .card{
-background:var(--glass);
+background:linear-gradient(145deg,#111,#1a1a1a);
 border-radius:15px;
 overflow:hidden;
 cursor:pointer;
 transition:.3s;
 }
-
 .card:hover{
 transform:scale(1.05);
+box-shadow:0 0 20px var(--neon1),0 0 40px var(--neon2);
 }
 
+.thumb{position:relative;}
 .thumb img{
 width:100%;
 height:150px;
 object-fit:cover;
 }
+.duration{
+position:absolute;
+bottom:8px;
+right:8px;
+background:black;
+padding:3px 6px;
+font-size:12px;
+border-radius:5px;
+}
 
 .card-info{padding:10px;}
+.card-info p{opacity:0.7;font-size:13px;}
 
+/* MINI PLAYER */
 .mini-player{
 position:fixed;
 bottom:0;
 width:100%;
-background:rgba(0,0,0,0.6);
+background:rgba(0,0,0,0.7);
 display:flex;
 align-items:center;
 padding:10px;
 }
-
 .mini-player img{
 width:50px;
 border-radius:5px;
 }
 .mini-player .info{padding-left:10px;}
+
+/* QUALITY */
+#quality{
+margin-top:10px;
+padding:8px;
+border-radius:10px;
+background:black;
+color:white;
+display:none;
+}
+
 </style>
 </head>
 
@@ -131,22 +170,23 @@ border-radius:5px;
 </div>
 
 <div class="player-box">
-<video id="video" controls style="display:none"></video>
-<audio id="audio" controls autoplay></audio>
 
-<div class="controls">
-<button onclick="mode='audio'">🎧 Audio</button>
-<button onclick="mode='video'">🎬 Video</button>
+<div class="now-playing">
+<img id="bigThumb">
+<h2 id="bigTitle">No Song</h2>
+<p id="bigChannel"></p>
 </div>
 
+<video id="video" controls></video>
+<audio id="audio" controls autoplay></audio>
+
+<button id="modeBtn" onclick="toggleMode()">🎧 Switch to Video</button>
+
 <select id="quality" onchange="changeQuality()">
-<option value="auto">Auto (1080p)</option>
 <option value="360">360p</option>
 <option value="480">480p</option>
 <option value="720">720p</option>
 <option value="1080">1080p</option>
-<option value="1440">2K</option>
-<option value="2160">4K</option>
 </select>
 
 </div>
@@ -163,8 +203,88 @@ border-radius:5px;
 <script>
 
 let mode="audio";
+let currentUrl="";
+let currentTitle="";
+let currentThumb="";
+
+function toggleMode(){
+mode = (mode === "audio") ? "video" : "audio";
+let btn=document.getElementById("modeBtn");
+btn.innerText = mode === "audio" ? "🎧 Switch to Video" : "🎬 Switch to Audio";
+
+if(currentUrl){
+play(currentUrl,currentTitle,currentThumb);
+}
+}
+
+async function play(url,title,thumb){
+
+currentUrl=url;
+currentTitle=title;
+currentThumb=thumb;
+
+let video=document.getElementById("video");
+let audio=document.getElementById("audio");
+
+document.getElementById("title").innerText=title;
+document.getElementById("thumb").src=thumb;
+
+document.getElementById("bigThumb").src=thumb;
+document.getElementById("bigTitle").innerText=title;
+
+if(mode==="video"){
+
+audio.pause();
+audio.style.display="none";
+
+video.style.display="block";
+
+let q=document.getElementById("quality").value;
+
+video.src=`/api/play/video?url=${encodeURIComponent(url)}&quality=${q}`;
+video.play();
+
+}else{
+
+video.pause();
+video.style.display="none";
+
+audio.style.display="block";
+
+let res=await fetch("/api/play/audio",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({url})
+});
+
+let data=await res.json();
+
+audio.src=data.stream;
+audio.play();
+}
+
+}
+
+function changeQuality(){
+
+let video=document.getElementById("video");
+let q=document.getElementById("quality").value;
+
+if(!currentUrl) return;
+
+let currentTime=video.currentTime;
+let isPlaying=!video.paused;
+
+video.src=`/api/play/video?url=${encodeURIComponent(currentUrl)}&quality=${q}`;
+
+video.onloadedmetadata=()=>{
+video.currentTime=currentTime;
+if(isPlaying) video.play();
+};
+
+}
+
 let timer;
-let currentUrl = "";
 
 function searchSongs(q){
 
@@ -188,86 +308,50 @@ grid.innerHTML="";
 [...data.main_results,...data.suggested].forEach(v=>{
 grid.innerHTML+=`
 <div class="card" onclick="play('${v.url}','${v.title}','${v.thumbnail}')">
-<div class="thumb"><img src="${v.thumbnail}"></div>
-<div class="card-info">${v.title}</div>
+<div class="thumb">
+<img src="${v.thumbnail}">
+<span class="duration">${v.duration || "3:20"}</span>
+</div>
+<div class="card-info">
+<h4>${v.title}</h4>
+<p>${v.channel || "Unknown"}</p>
+</div>
 </div>`;
 });
 
 },300);
 }
 
-async function play(url,title,thumb){
+/* DEFAULT SONGS */
+window.onload=()=>{
+let grid=document.getElementById("grid");
 
-currentUrl = url;
+let demo=[
+{
+title:"Sample Song",
+url:"https://youtube.com/watch?v=dQw4w9WgXcQ",
+thumbnail:"https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
+}
+];
 
-let video=document.getElementById("video");
-let audio=document.getElementById("audio");
-let quality=document.getElementById("quality").value;
-
-document.getElementById("title").innerText=title;
-document.getElementById("thumb").src=thumb;
-
-if(mode==="video"){
-
-audio.pause();
-audio.style.display="none";
-
-video.style.display="block";
-
-video.src=`/api/play/video?url=${encodeURIComponent(url)}&quality=${quality}`;
-video.play();
-
-}else{
-
-video.pause();
-video.style.display="none";
-
-audio.style.display="block";
-
-let res=await fetch("/api/play/audio",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({url})
+demo.forEach(v=>{
+grid.innerHTML+=`
+<div class="card" onclick="play('${v.url}','${v.title}','${v.thumbnail}')">
+<img src="${v.thumbnail}">
+<div style="padding:10px">${v.title}</div>
+</div>`;
 });
-
-let data=await res.json();
-
-audio.src=data.stream;
-audio.play();
-}
-
-navigator.mediaSession.metadata=new MediaMetadata({
-title:title,
-artwork:[{src:thumb}]
-});
-}
-
-function changeQuality(){
-
-let video=document.getElementById("video");
-let q=document.getElementById("quality").value;
-
-if(!currentUrl) return;
-
-let currentTime = video.currentTime;
-let isPlaying = !video.paused;
-
-video.pause();
-
-video.src=`/api/play/video?url=${encodeURIComponent(currentUrl)}&quality=${q}`;
-
-video.oncanplay = () => {
-
-setTimeout(()=>{
-video.currentTime = currentTime;
-},200);
-
-if(isPlaying){
-video.play();
-}
-
 };
+
+/* LANDSCAPE DETECT */
+window.addEventListener("resize",()=>{
+if(window.innerWidth > window.innerHeight){
+document.getElementById("quality").style.display="block";
+}else{
+document.getElementById("quality").style.display="none";
 }
+});
+
 </script>
 
 </body>
