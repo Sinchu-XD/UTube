@@ -1,12 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
+from fastapi.responses import FileResponse, StreamingResponse
+import aiohttp
 
-from YouTubeMusic.Search import Search
-from YouTubeMusic.Stream import get_stream
-from Stream import get_video_audio_urls, stream_merged
+from JioSaavn import search
 
 app = FastAPI()
 
@@ -25,39 +23,50 @@ async def home():
     return FileResponse("static/index.html")
 
 
-# 🔍 SEARCH
+# 🔍 SEARCH (JioSaavn)
 @app.post("/api/search")
-async def search(req: Request):
+async def search_api(req: Request):
     data = await req.json()
-    return await Search(data.get("q"), limit=1)
+    q = data.get("q")
+
+    results = await search(q, limit=10)
+
+    return [
+        {
+            "title": s.get("song"),
+            "url": s.get("media_url"),
+            "thumbnail": s.get("image"),
+            "channel": s.get("primary_artists"),
+            "duration": s.get("duration", "3:00")
+        }
+        for s in results
+    ]
 
 
-# 📁 COOKIE PATH
-COOKIES = "cookies.txt"
-
-def get_cookie_file():
-    return COOKIES if os.path.exists(COOKIES) else None
-
-
+# 🎵 AUDIO STREAM (JioSaavn)
 @app.post("/api/play/audio")
 async def play_audio(req: Request):
     data = await req.json()
     url = data.get("url")
 
-    stream = await get_stream(url, cookies=get_cookie_file())
+    if not url:
+        return {"error": "No URL provided"}
 
-    if not stream:
-        return {"error": "Audio stream failed"}
+    session = aiohttp.ClientSession()
 
-    return {"stream": stream}
+    async def generator():
+        async with session.get(url) as resp:
+            async for chunk in resp.content.iter_chunked(1024):
+                yield chunk
+        await session.close()
+
+    return StreamingResponse(
+        generator(),
+        media_type="audio/mpeg"
+    )
 
 
+# ❌ VIDEO NOT SUPPORTED (JioSaavn audio only)
 @app.get("/api/play/video")
-async def play_video(url: str, quality: str = "auto"):
-
-    video_url, audio_url = get_video_audio_urls(url, quality)
-
-    if not video_url:
-        return {"error": "video failed"}
-
-    return stream_merged(video_url, audio_url)
+async def play_video():
+    return {"error": "Video not supported soon we will"}
